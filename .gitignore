@@ -1,0 +1,37 @@
+# Environment files (secrets, credentials)
+.env
+*.env
+
+# Python / Flask build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment directories
+venv/
+env/
+.venv/
+.env/
+
+# Docker
+*.log
+*.pid
+*.seed
+*.pid.lock
+db_data/
+
+# Byte-compiled / cache
+*.sqlite3
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE / Editor junk
+.vscode/
+.idea/
+*.swp
+
+*.pem
+docker-compose.yml

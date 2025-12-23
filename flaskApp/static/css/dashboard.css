@@ -1,0 +1,24 @@
+.dashboardPage{
+    margin-top: 135px;
+    display: grid;
+    grid-template-columns: 1fr 1fr; 
+    gap: 20px;
+}
+
+.headerText{
+    position: relative;
+    padding: 5px;
+    color: #3f474f;
+    font-size: 24px;
+    width: fit-content;
+    margin-left: 10px;
+}
+
+.rowDiv{
+    display: flex;
+    flex-direction: row;    
+    border: 3px dashed #8a9696;
+    border-radius: 3px;
+    height: fit-content;
+    margin: 15px;
+}
