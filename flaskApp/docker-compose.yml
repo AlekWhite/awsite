@@ -23,7 +23,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
-      - db_data:/var/lib/postgresql/data
+      - mydb_data:/var/lib/postgresql/data
+
+  app:
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
 
 volumes:
-  db_data:
+  mydb_data:

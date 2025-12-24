@@ -14,9 +14,10 @@ class ArduinoInterface(threading.Thread):
     def connect(self, port):
         try:
             ard = serial.Serial(port=port, baudrate=9600, timeout=.1)
+            print("Arduino Connected!")
             return ard
-        except:
-            print(f"No Arduino Connection - port: {port}")
+        except Exception as e:
+            print(f"No Arduino Connection - port: {port} {e}")
             return None
 
     # set led colors

@@ -28,16 +28,10 @@
                 <span class="headerText" >Ardunio Status: </span>
                 <span class="mainText" id="statusText">test</span>
             </div>
-
-            <form action="/dashboard" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="rowDiv">
-                    <span class="headerText">Ardunio Port:
-                        <label><input class="mainTextInp" id="port" type="text" name="newPort" required /></label>
-                    </span>
-                    <input class="mainButton" type="submit" value="Submit"/>
-                </div>
-            </form>
+            <div class="rowDiv">
+                <span class="headerText">Ardunio Port:</span>
+                <span class="mainText" id="port" ></span>
+            </div>
         </div>
     </div>
 
