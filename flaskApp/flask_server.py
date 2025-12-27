@@ -25,7 +25,7 @@ db_url = os.getenv("DATABASE_URL")
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 app.static_folder = 'static'
-app.config['SECRET_KEY'] = secrets.token_urlsafe(32)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
@@ -46,9 +46,6 @@ limiter = Limiter(
 # deliver main html page
 @app.route('/', methods=['GET'])
 def main_page():
-    if 'user_id' in session:
-        session.pop('user_id', None)
-    print(session)
     return render_template("mainPage.html")
 
 # login for the web-app clients 
@@ -76,18 +73,32 @@ def auth_page():
 
 # private dashboard page
 @app.route('/dashboard', methods=['GET', 'POST'])
+@limiter.limit("10 per minute", methods=["POST"])
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('auth_page'))
 
     if request.method == 'POST':
 
-        # update ard port in db
-        np = request.form.get("newPort")
-        if np and (len(np) < 100):
-            print(np)
+        # update light colors in the db
+        data = request.form.get("light")
+        if data and (Arduino.get_state != "update"):
+            try:
+                light_data = json.loads(data)
+            except json.JSONDecodeError:
+                time.sleep(1)
+                return "Invalid JSON format", 400
+            print(light_data)
+            if light_data['zone'] == "all-on":
+                RGBLightValue.get_by_name("zone1").update_color(255, 0, 0)
+                RGBLightValue.get_by_name("zone2").update_color(55, 0, 200)
+            elif light_data['zone'] == "all-off":
+                RGBLightValue.get_by_name("zone1").update_color(0, 0, 0)
+                RGBLightValue.get_by_name("zone2").update_color(0, 0, 0)
+            else:
+                RGBLightValue.get_by_name(light_data['zone']).update_color(light_data['r'], light_data['g'], light_data['b'])
             Arduino.update_state("update")
-            Arduino.update_port(np)
+            time.sleep(0.15)
 
     return render_template("dashboard.html")
 
@@ -97,6 +108,7 @@ def logout():
     return redirect(url_for('main_page'))
 
 @app.route('/api/arduino', methods=['GET'])
+@limiter.limit("10 per minute", methods=["GET"])
 def arduino():
     if 'user_id' not in session:
         return json.dumps({"error": "Invalid credentials"}), 401
