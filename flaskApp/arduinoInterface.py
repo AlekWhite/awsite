@@ -27,6 +27,8 @@ class ArduinoInterface(threading.Thread):
         if self.arduino:
             try:
                 self.arduino.write(colorString.encode())
+                time.sleep(0.2)
+                Arduino.update_state("online")
             except:
                 print("Could Not Send to Arduino")
                 self.arduino = None
@@ -54,16 +56,8 @@ class ArduinoInterface(threading.Thread):
                         c1_out = "".join(str(c).zfill(3) + " " for c in c1) + "0"
                         c2_out = "".join(str(c).zfill(3) + " " for c in c2) + "1"
                         print(f"updating colors to be: z1:{c1_out} z2:{c2_out}")
-
-                        if self.arduino:
-                            try:
-                                self.arduino.write(c1.encode())
-                                time.sleep(0.2)
-                                self.arduino.write(c2.encode())
-                            except Exception as e:
-                                print(f"Failed to update colors {e}")
-                        else:
-                            Arduino.update_state("offline")
+                        self.setColors(c1_out)
+                        self.setColors(c2_out)
 
                 # when connected, read data 
                 if self.arduino:
