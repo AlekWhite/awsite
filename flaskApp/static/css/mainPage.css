@@ -61,7 +61,7 @@ h2{
     float: left;
     color: #394047;
     border: 2px solid #8ea3bd;
-    border-radius: 3px;
+    border-radius: 5px;
     background-color: #9facbd;
     margin: 5px 10px;
     padding: 4px;
@@ -74,7 +74,6 @@ h2{
 
 .mainButton:hover{
     background-color: #b4c2d4;
-    font-size: 18pt;
     color: #2c3136;
     border: 2px solid #9bb2ce;
 }

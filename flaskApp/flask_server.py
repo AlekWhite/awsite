@@ -1,4 +1,4 @@
-from flask import Flask, request, session, render_template, redirect, url_for
+from flask import Flask, request, session, render_template, redirect, url_for, jsonify
 from werkzeug.security import check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
@@ -13,6 +13,7 @@ from threading import Thread
 import secrets
 import time
 import json
+import pytz
 import os
 
 from model import User, Arduino, FishOfTheWeek, TemperatureData, RGBLightValue, CurrentTemperature, db 
@@ -73,22 +74,26 @@ def auth_page():
 
 # private dashboard page
 @app.route('/dashboard', methods=['GET', 'POST'])
-@limiter.limit("10 per minute", methods=["POST"])
+@limiter.limit("30 per minute")
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('auth_page'))
-
     if request.method == 'POST':
 
         # update light colors in the db
         data = request.form.get("light")
-        if data and (Arduino.get_state != "update"):
+        if data and (Arduino.get_state() != "update"):
+
+            # get and validate form input 
             try:
                 light_data = json.loads(data)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
                 time.sleep(1)
+                print(f"json-error: {e}")
                 return "Invalid JSON format", 400
             print(light_data)
+
+            # update the db with new colors
             if light_data['zone'] == "all-on":
                 RGBLightValue.get_by_name("zone1").update_color(255, 0, 0)
                 RGBLightValue.get_by_name("zone2").update_color(55, 0, 200)
@@ -100,15 +105,29 @@ def dashboard():
             Arduino.update_state("update")
             time.sleep(0.15)
 
-    return render_template("dashboard.html")
+    # get selected colors from the db
+    colors = {}
+    zones = ["zone1", "zone2"]
+    rgb_button_map = {(0, 0, 0): "off", (255, 0, 0): "red", (0, 255, 0): "green", (0, 0, 255): "blue", (55, 0, 200): "purple"}
+    for z in zones:
+        rgb =  RGBLightValue.get_by_name(z).rgb_tuple
+        if rgb in rgb_button_map:
+            colors[z] = rgb_button_map[rgb]
+        else:
+            colors[z] = "none"
+    print(colors)
 
+    return render_template("dashboard.html", colorData=colors)
+
+# logout a user
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     return redirect(url_for('main_page'))
 
+# gets arduino status from the db 
 @app.route('/api/arduino', methods=['GET'])
-@limiter.limit("10 per minute", methods=["GET"])
+@limiter.limit("30 per minute")
 def arduino():
     if 'user_id' not in session:
         return json.dumps({"error": "Invalid credentials"}), 401
@@ -117,3 +136,29 @@ def arduino():
         "port": Arduino.get_port()}
     return json.dumps(ard_out), 200
    
+# gets temperature data from the db
+@app.route('/api/temperature', methods=['GET'])
+@limiter.limit("30 per minute")
+def temperature():
+    if 'user_id' not in session:
+        return json.dumps({"error": "Invalid credentials"}), 401
+    
+    db_data = TemperatureData.get_all()
+    est = pytz.timezone('America/New_York')
+    chart_data = None
+    if db_data and (len(db_data) > 0):
+        chart_data = {
+            'cols': [
+                {'label': 'Time', 'type': 'string'},
+                {'label': 'Temperature (°F)', 'type': 'number'}],
+            'rows': [
+                {'c': [{'v': t.timestamp.replace(tzinfo=pytz.utc).astimezone(est).strftime('%I:%M %p')},
+                       {'v': float(int((((t.avg_temp*(9/5))+32))*10))/10}]} for t in reversed(db_data)]}
+        
+    ct_val = CurrentTemperature.get_current()
+    ct_out = None
+    if ct_val:
+        ct_out = round((ct_val.current_temp * (9/5) + 32), 1)
+
+    out = {"chartData": chart_data, "ct": ct_out}
+    return jsonify(out), 200

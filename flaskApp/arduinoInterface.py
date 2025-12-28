@@ -1,7 +1,9 @@
-from model import Arduino, RGBLightValue
+from model import Arduino, RGBLightValue, CurrentTemperature, TemperatureData
 import threading
+import datetime
 import serial
 import time
+import re
 
 class ArduinoInterface(threading.Thread):
 
@@ -9,6 +11,9 @@ class ArduinoInterface(threading.Thread):
         super(ArduinoInterface, self).__init__()
         self.app = app
         self.arduino = None
+        with self.app.app_context():
+            TemperatureData.cleanup_excess_entries()
+            CurrentTemperature.cleanup_old_readings()
 
     # connects to board
     def connect(self, port):
@@ -27,13 +32,14 @@ class ArduinoInterface(threading.Thread):
         if self.arduino:
             try:
                 self.arduino.write(colorString.encode())
-                time.sleep(0.2)
+                time.sleep(1)
                 Arduino.update_state("online")
-            except:
-                print("Could Not Send to Arduino")
-                self.arduino = None
-                with self.app.app_context():
-                    Arduino.update_state("offline")
+            except Exception as e:
+                print(f"serial write failed: {e}")
+        print("Could Not Send to Arduino")
+        self.arduino = None
+        with self.app.app_context():
+            Arduino.update_state("offline")
 
     # main loop
     def run(self):
@@ -48,7 +54,7 @@ class ArduinoInterface(threading.Thread):
                 while int(time.time()) % 60 != 0:
                     time.sleep(0.8)
 
-                    # update port and colors as needed
+                    # update colors as needed
                     if Arduino.get_state() == "update":
                         port = Arduino.get_port()
                         c1 = RGBLightValue.get_by_name("zone1").rgb_tuple
@@ -62,18 +68,33 @@ class ArduinoInterface(threading.Thread):
                 # when connected, read data 
                 if self.arduino:
                     try:
+                        # parse new temperature data, add to db
                         line = str(self.arduino.readline())
-                        if line != "b''":
+                        if line != "b''" and line.startswith("b'# TEMP DATA #") and (len(line) > 60):
                             Arduino.update_state("online")
-                            print(line)
-
+                            new_temp = re.findall(r"[0-9.-]+", line)[0]
+                            CurrentTemperature.add_temp(new_temp)
+                            print(f"new-temp-data: {new_temp}, {line}")
+                            
                     # detect when connection is lost
                     except Exception as e:
                         print(f"Read error: {e}")
                         Arduino.update_state("offline")
                         self.arduino = None
                         continue
+
+                    # get avg temp for this hour, at the end of the hour
+                    if datetime.datetime.now().minute == 59:
+                        total = 0
+                        db_data = CurrentTemperature.get_last_hour()
+                        for t in db_data:
+                            total += t.current_temp
+                        if len(db_data) > 0:
+                            out = float(int((total / len(db_data))*10))/10
+                            print(f"new-avg-temp: {out}")
+                            TemperatureData.add_temp(out)
+                        
                 else:
                     Arduino.update_state("offline")
                     self.arduino = self.connect(port)
-                time.sleep(1)
+                    time.sleep(1)

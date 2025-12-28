@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, timedelta, datetime
+import datetime as dt
 from sqlalchemy import func
 
 db = SQLAlchemy()
@@ -16,6 +17,29 @@ class TemperatureData(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     avg_temp = db.Column(db.Float, nullable=False)
 
+    @classmethod
+    def add_temp(cls, avg_temp, timestamp=None):
+        new_reading = cls(
+            avg_temp=avg_temp,
+            timestamp=timestamp if timestamp else datetime.utcnow()
+        )
+        db.session.add(new_reading)
+        db.session.commit()
+        return new_reading
+    
+    @classmethod
+    def get_all(cls):
+        """Get all temperature readings (max 24 due to trigger)"""
+        return cls.query.order_by(cls.timestamp.desc()).all()
+    
+    @classmethod
+    def cleanup_excess_entries(cls):
+        """Manually trigger cleanup to maintain 24-entry limit"""
+        subquery = cls.query.order_by(cls.timestamp.desc()).offset(24).subquery()
+        deleted_count = cls.query.filter(cls.id.in_(db.session.query(subquery.c.id))).delete(synchronize_session=False)
+        db.session.commit()
+        return deleted_count
+
 class CurrentTemperature(db.Model):
     __tablename__ = 'current_temperature'
     id = db.Column(db.Integer, primary_key=True)
@@ -28,15 +52,30 @@ class CurrentTemperature(db.Model):
         return cls.query.order_by(cls.timestamp.desc()).first()
     
     @classmethod
-    def update_temp(cls, temp):
-        """Update current temperature (replaces existing)"""
-        # Delete all existing readings
-        cls.query.delete()
-        # Insert new reading
-        new_temp = cls(current_temp=temp)
+    def get_last_hour(cls):
+        """Get all temperature readings from the last hour"""
+        one_hour_ago = datetime.utcnow() - timedelta(minutes=dt.datetime.now().minute)
+        return cls.query.filter(cls.timestamp >= one_hour_ago).order_by(cls.timestamp.desc()).all()
+    
+    @classmethod
+    def add_temp(cls, temp, timestamp=None):
+        """Add a single temperature reading"""
+        new_temp = cls(
+            current_temp=temp,
+            timestamp=timestamp if timestamp else datetime.utcnow()
+        )
         db.session.add(new_temp)
         db.session.commit()
+        cls.cleanup_old_readings()
         return new_temp
+    
+    @classmethod
+    def cleanup_old_readings(cls):
+        """Delete all readings older than 1 hour"""
+        one_hour_ago = datetime.utcnow() - timedelta(minutes=dt.datetime.now().minute)
+        deleted_count = cls.query.filter(cls.timestamp < one_hour_ago).delete()
+        db.session.commit()
+        return deleted_count
     
 class RGBLightValue(db.Model):
     __tablename__ = 'rgb_light_vals'

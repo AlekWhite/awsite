@@ -7,18 +7,18 @@
     <script src="{{ url_for('static', filename='js/authPage.js') }}"></script>
     <div class="lgDiv">
         <h2><b>Login:</b></h2>
-
-        <form action = "/auth_page" method = "POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <p class="mainText">Username:
-                <label><input class="mainTextInp" type="text" name="Username" required /></label>
-            </p>
-            <p class="mainText">Password:
-                <label><input class="mainTextInp" type="password" name="Password" required /></label>
-            </p>
-            <input class="mainButton" type="submit" style="margin-left: 90px;" value="Submit" />
-            <button class="mainButton" id="back" type="submit" style="margin-left: 90px;" formaction="/" formmethod="GET">Back</button>
-        </form>
-
+        <div class="form">
+            <form action = "/auth_page" method = "POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <p class="mainText">Username:
+                    <label><input class="mainTextInp" type="text" name="Username" required /></label>
+                </p>
+                <p class="mainText">Password:
+                    <label><input class="mainTextInp" type="password" name="Password" required /></label>
+                </p>
+                <input class="mainButton" type="submit" style="margin-left: 90px;" value="Submit" />
+                <button class="mainButton" id="back" type="submit" style="margin-left: 90px;" formaction="/" formmethod="GET">Back</button>
+            </form>
+        </div>
     </div>
 </body>

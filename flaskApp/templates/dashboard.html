@@ -3,7 +3,7 @@
 <body>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/mainPage.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/dashboard.css') }}" />
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <div id="app" data-colors='{{ colorData | tojson }}'></div>
 
     <div class="headerDiv">
         <form action="/dashboard">
@@ -26,7 +26,7 @@
         <div class="mainDivRow">
             <div class="rowDiv">
                 <span class="headerText" >Arduino Status: </span>
-                <span class="mainText" id="statusText">test</span>
+                <span class="mainText" id="statusText"></span>
             </div>
             <div class="rowDiv">
                 <span class="headerText">Arduino Port:</span>
@@ -35,34 +35,29 @@
         </div>
 
         <div class="mainDivCol">
-            <span class="headerText" style="margin-top: 5px;" >Lights: </span>
             <form action="/dashboard" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="rowDiv">
+                    <span class="headerText" style="margin-right: 270px;" >Lights: </span>
                     <span class="mainText">Presets: </span>
                     <button class="mainButton" type="submit" name="light" value='{"r":-1,"g":-1,"b":-1,"zone":"all-on"}'>All-On</button>
                     <button class="mainButton" type="submit" name="light" value='{"r":-1,"g":-1,"b":-1,"zone":"all-off"}'>All-Off</button>
                 </div>
                 <div class="rowDiv">
-                    <span class="mainText" style="margin-top: 15px;">Zone 1: </span>
-                    <div class="buttonDiv">
-                        <button class="mainButton" type="submit" name="light" value='{"r":55,"g":0,"b":200,"zone":"zone1"}' style="color:#8344b3;" >Purple</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":255,"g":0,"b":0,"zone":"zone1"}' style="color:#b72525;" >Red</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":0,"g":255,"b":000,"zone":"zone1"}' style="color:#34a834;" >Green</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":0,"g":0,"b":255,"zone":"zone1"}' style="color:#3c3cc4;" >Blue</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":0,"g":0,"b":0,"zone":"zone1"}' >Off</button>
-                    </div>
-
+                    <span class="mainText">Zone 1: </span>
+                    <button class="mainButton" type="submit" name="light" id="z1_purple" value='{"r":55,"g":0,"b":200,"zone":"zone1"}' style="color:#8344b3;" >Purple</button>
+                    <button class="mainButton" type="submit" name="light" id="z1_red" value='{"r":255,"g":0,"b":0,"zone":"zone1"}' style="color:#b72525;" >Red</button>
+                    <button class="mainButton" type="submit" name="light" id="z1_green" value='{"r":0,"g":255,"b":0,"zone":"zone1"}' style="color:#34a834;" >Green</button>
+                    <button class="mainButton" type="submit" name="light" id="z1_blue" value='{"r":0,"g":0,"b":255,"zone":"zone1"}' style="color:#3c3cc4;" >Blue</button>
+                    <button class="mainButton" type="submit" name="light" id="z1_off" value='{"r":0,"g":0,"b":0,"zone":"zone1"}' >Off</button>
                 </div>
                 <div class="rowDiv">
-                    <span class="mainText" style="margin-top: 15px;">Zone 1: </span>
-                    <div class="buttonDiv">
-                        <button class="mainButton" type="submit" name="light" value='{"r":55,"g":0,"b":200,"zone":"zone2"}' style="color:#8344b3;" >Purple</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":255,"g":0,"b":0,"zone":"zone2"}' style="color:#b72525;" >Red</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":0,"g":255,"b":000,"zone":"zone2"}' style="color:#34a834;" >Green</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":0,"g":0,"b":255,"zone":"zone2"}' style="color:#3c3cc4;" >Blue</button>
-                        <button class="mainButton" type="submit" name="light" value='{"r":0,"g":0,"b":0,"zone":"zone2"}' >Off</button>
-                    </div>
+                    <span class="mainText">Zone 2: </span>
+                    <button class="mainButton" type="submit" name="light" id="z2_purple" value='{"r":55,"g":0,"b":200,"zone":"zone2"}' style="color:#8344b3;" >Purple</button>
+                    <button class="mainButton" type="submit" name="light" id="z2_red" value='{"r":255,"g":0,"b":0,"zone":"zone2"}' style="color:#b72525;" >Red</button>
+                    <button class="mainButton" type="submit" name="light" id="z2_green" value='{"r":0,"g":255,"b":0,"zone":"zone2"}' style="color:#34a834;" >Green</button>
+                    <button class="mainButton" type="submit" name="light" id="z2_blue" value='{"r":0,"g":0,"b":255,"zone":"zone2"}' style="color:#3c3cc4;" >Blue</button>
+                    <button class="mainButton" type="submit" name="light" id="z2_off" value='{"r":0,"g":0,"b":0,"zone":"zone2"}' >Off</button>
                 </div>
             </form>
         </div>
@@ -71,8 +66,15 @@
 
     <div class="dashboardPage">
         <div class="mainDivCol">
-            <span class="headerText" style="margin-top: 5px;" >Temperature: </span>
+            <div class="rowDiv">
+                <span class="headerText">Current Temperature: </span>
+                <span id="ct" class="mainText">no-data</span>
+            </div>
+            <div id="myChart" class="chart"></div>
         </div>
     </div>
+
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 
 </body>
