@@ -115,7 +115,7 @@ class FishOfTheWeek(db.Model):
         # Find fish not chosen in last 12 weeks, or never chosen
         today = date.today()
         monday = today - timedelta(days=today.weekday())
-        cutoff_date = monday - timedelta(weeks=12)
+        cutoff_date = monday - timedelta(weeks=13)
         fish = cls.query.filter(
             (cls.last_chosen_week == None) | (cls.last_chosen_week < cutoff_date)
         ).order_by(func.random()).first()
@@ -129,16 +129,37 @@ class FishOfTheWeek(db.Model):
         self.last_chosen_week = monday
         db.session.commit()
 
+    """
+    @classmethod
+    def get_all(cls):
+        return cls.query.order_by(cls.fish_name).all()
+    """
+
+    @classmethod
+    def get_fish(cls):
+        return cls.query.filter(cls.last_chosen_week != None).order_by(cls.last_chosen_week.desc()).limit(12).all()
+
 class Arduino(db.Model):
     __tablename__ = 'arduino'
     id = db.Column(db.Integer, primary_key=True)
     port = db.Column(db.String(100), nullable=False)
     state = db.Column(db.String(20), nullable=False)
 
+    _cached_state = None
+    _cache_initialized = False
+
+    @classmethod
+    def initialize_cache(cls):
+        if not cls._cache_initialized:
+            arduino = cls.query.first()
+            if arduino:
+                cls._cached_state = arduino.state
+                cls._cache_initialized = True
+
     @classmethod
     def get_state(cls):
         """Get the current Arduino state"""
-        return cls.query.first().state
+        return cls._cached_state
 
     @classmethod
     def get_port(cls):
@@ -147,11 +168,17 @@ class Arduino(db.Model):
     
     @classmethod
     def update_state(cls, new_state):
-        """Update Arduino state"""
+        """Update Arduino state in both cache and database"""
         arduino = cls.query.first()
         if arduino:
             arduino.state = new_state
-        db.session.commit()
+            cls._cached_state = new_state 
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error updating Arduino state: {e}")
+                raise
         return arduino
 
     @classmethod

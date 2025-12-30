@@ -84,3 +84,9 @@ body{
     background-color: #6f7773;
     box-shadow: 0 12px 16px rgba(0, 0, 0, 0.1);
 }
+
+@media (width < 1739px) {
+    .dashboardPage{
+        width: 900px;
+    }
+}

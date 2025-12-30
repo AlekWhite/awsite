@@ -1,4 +1,4 @@
-from flask import Flask, request, session, render_template, redirect, url_for, jsonify
+from flask import Flask, request, session, render_template, redirect, url_for, jsonify, abort, send_from_directory
 from werkzeug.security import check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_limiter import Limiter
@@ -10,8 +10,6 @@ from flask import app as application
 from datetime import timedelta
 from dotenv import load_dotenv
 from threading import Thread
-import secrets
-import time
 import json
 import pytz
 import os
@@ -33,9 +31,13 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = True 
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['CACHE_TYPE'] = 'simple' 
+app.config['CACHE_DEFAULT_TIMEOUT'] = 604800 
 
 db.init_app(app)
 csrf = CSRFProtect(app)
+with app.app_context():
+    Arduino.initialize_cache()
 
 limiter = Limiter(
     app=app,
@@ -59,13 +61,11 @@ def auth_page():
     un = request.form.get("Username").strip()
     pw = request.form.get("Password").strip()
     if not un or not pw or len(un) > 100 or len(pw) > 100:
-        time.sleep(.5)
         return json.dumps({"error": "Invalid credentials"}), 401
     print(request.form)
     user = User.query.filter_by(username=un).first()
 
     if not user or not check_password_hash(user.password_hash, pw):
-        time.sleep(.5)
         return json.dumps({"error": "Invalid credentials"}), 401
     session.clear()
     session.permanent = True
@@ -88,7 +88,6 @@ def dashboard():
             try:
                 light_data = json.loads(data)
             except json.JSONDecodeError as e:
-                time.sleep(1)
                 print(f"json-error: {e}")
                 return "Invalid JSON format", 400
             print(light_data)
@@ -103,7 +102,6 @@ def dashboard():
             else:
                 RGBLightValue.get_by_name(light_data['zone']).update_color(light_data['r'], light_data['g'], light_data['b'])
             Arduino.update_state("update")
-            time.sleep(0.15)
 
     # get selected colors from the db
     colors = {}
@@ -126,7 +124,7 @@ def logout():
     return redirect(url_for('main_page'))
 
 # gets arduino status from the db 
-@app.route('/api/arduino', methods=['GET'])
+@app.route('/api/arduino', methods=['POST'])
 @limiter.limit("30 per minute")
 def arduino():
     if 'user_id' not in session:
@@ -137,7 +135,7 @@ def arduino():
     return json.dumps(ard_out), 200
    
 # gets temperature data from the db
-@app.route('/api/temperature', methods=['GET'])
+@app.route('/api/temperature', methods=['POST'])
 @limiter.limit("30 per minute")
 def temperature():
     if 'user_id' not in session:
@@ -162,3 +160,30 @@ def temperature():
 
     out = {"chartData": chart_data, "ct": ct_out}
     return jsonify(out), 200
+
+# gets current fish from the db
+@app.route('/api/fish', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_current_fish():
+    fish_list = FishOfTheWeek.get_fish()
+    out = [{
+            'name': fish.fish_name,
+            'wiki_url': fish.wiki_url,
+            'date': fish.last_chosen_week}
+        for fish in fish_list]
+    return jsonify({'fish': out}), 200
+
+# serve public fish images
+@app.route('/fish/<filename>')
+@limiter.limit("100 per minute")
+def serve_public_fish(filename):
+    public_dir = os.path.join(app.static_folder, 'fish', 'public')
+    if not filename or '/' in filename or '\\' in filename or '..' in filename:
+        abort(404)
+    file_path = os.path.join(public_dir, filename)
+    if not os.path.exists(file_path):
+        abort(404)  
+    response = send_from_directory(public_dir, filename)
+    response.headers['Cache-Control'] = 'public, max-age=604800'
+    response.headers['Vary'] = 'Accept-Encoding'
+    return response

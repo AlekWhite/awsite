@@ -5,15 +5,32 @@ document.addEventListener("DOMContentLoaded", () => {
     onLoad();
 });
 
+function getCsrfToken() {
+    const token = document.querySelector('meta[name="csrf-token"]');
+    if (token) { return token.getAttribute('content'); }
+    return null;
+}
+
+function showLoading() {
+    document.getElementById('loading_screen').style.display = 'flex';
+    document.getElementById('app').hidden = true;
+}
+
+function hideLoading() {
+    document.getElementById('loading_screen').style.display = 'none';
+    document.getElementById('app').hidden = false;
+}
+
 async function onLoad(){
-    // update every 15sec
     async function loop() {
         try { await updateDashboard();
         } catch (err) {
             console.error("Error updating data:", err); }
         setTimeout(loop, 15000); 
     }
+    showLoading();
     await updateDashboard();
+    hideLoading();
     loop();
 }
 
@@ -27,15 +44,24 @@ function show_selected_lights(){
 }
 
 async function updateDashboard(){
-    // arduino port & status
     try{
-        const response = await fetch("/api/arduino");
-        if (!response.ok) throw new Error("Failed to fetch");
-        const data = await response.json();
-        const status_text = {"online": ["Online", "#34a834"],
-                             "offline": ["Offline", "#b72525"],
-                             "update": ["Updating", "#8344b3"]}
 
+        // fetch arduino data
+        const response = await fetch('/api/arduino', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()},
+            credentials: 'same-origin'});
+        if (!response.ok) {
+            const data = await response.json();
+            if (data.csrf_expired) {
+                window.location.href = '/auth_page';
+                return;}
+            throw new Error("Failed to fetch");}
+        const data = await response.json();
+
+        // updated selected buttons 
         if (data.status == "update") {
             document.querySelectorAll('button[name="light"]').forEach(button => {
                 button.disabled = true;});
@@ -44,40 +70,48 @@ async function updateDashboard(){
                 button.disabled = false;
         });}
 
+        // update status text
+        const status_text = {"online": ["Online", "#34a834"],
+                             "offline": ["Offline", "#b72525"],
+                             "update": ["Updating", "#8344b3"]}
         document.getElementById("statusText").innerText = status_text[data.status][0];
         document.getElementById("statusText").style.color = status_text[data.status][1];
         document.getElementById("port").innerText = data.port;
+
     } catch (err) {
-        console.error("Error loading arduino data:", err);
-    }
+        console.error("Error loading arduino data:", err);}
     await loadChart();
 }
 
 async function loadChart() {
     try {
-        const response = await fetch('/api/temperature');
+
+        // fetch temperature data
+        const response = await fetch('/api/temperature', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()},
+            credentials: 'same-origin'});
         if (!response.ok) {
             console.error('Failed to fetch temperature data');
             showChartError();
             return;}
         const data = await response.json();
 
+        // update chart
         if (data.chartData && data.chartData.rows && data.chartData.rows.length > 0) {
             drawChart(data.chartData);
         } else {
             showChartError();}
 
+        // update text
         if (data.ct !== null){
             document.getElementById("ct").innerText = `${data.ct}°F`;}
 
     } catch (error) {
         console.error('Error loading chart data:', error);
         showChartError();}
-}
-
-function showChartError(){
-    const chartDiv = document.getElementById('myChart');
-    chartDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #3e3f40; font-size: 18px; font-family: Trebuchet MS;">No temperature data available</div>';
 }
 
 function drawChart(chartData) {
@@ -92,14 +126,12 @@ function drawChart(chartData) {
         hAxis: {
             titleTextStyle: {color: '#3f474f', fontName: 'Trebuchet MS'},
             textStyle: {color: '#3f474f'},
-            gridlines: {width: 15, color: '#3e3f40'}
-        },
+            gridlines: {width: 15, color: '#3e3f40'}},
 
         vAxis: {
             titleTextStyle: {color: '#3f474f', fontName: 'Trebuchet MS'},
             textStyle: {color: '#3f474f'},
-            gridlines: {width: 15, color: '#3e3f40'}
-        },
+            gridlines: {width: 15, color: '#3e3f40'}},
 
         lineWidth: 4,
         pointSize: 9,
@@ -108,7 +140,11 @@ function drawChart(chartData) {
         colors: ['#4f5c54'],
         legend: {position: 'bottom', textStyle: {color: '#3f474f'}}
     };
-
     const chart = new google.visualization.LineChart(document.getElementById('myChart'));
     chart.draw(data, options);
+}
+
+function showChartError(){
+    const chartDiv = document.getElementById('myChart');
+    chartDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #3e3f40; font-size: 18px; font-family: Trebuchet MS;">No temperature data available</div>';
 }

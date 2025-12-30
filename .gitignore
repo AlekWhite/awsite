@@ -34,3 +34,5 @@ Thumbs.db
 *.swp
 
 *.pem
+flaskApp/static/fish_img/
+flaskApp/static/fish/
