@@ -7,7 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import select, update
 from flask import app as application
-from datetime import timedelta
+from datetime import timedelta, datetime
+from flask import send_from_directory
 from dotenv import load_dotenv
 from threading import Thread
 import json
@@ -34,6 +35,14 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['CACHE_TYPE'] = 'simple' 
 app.config['CACHE_DEFAULT_TIMEOUT'] = 604800 
 
+# edit fish update interval here 
+#est = pytz.timezone("America/New_York")
+#now = datetime.now(est)
+#target = now + timedelta(minutes=2)
+#app.fish_interval = {"day_of_week": target.strftime("%a").lower(), "hour": target.hour, "minute": target.minute, "second": target.second}
+app.fish_interval = {"day_of_week": 'fri', "hour": 23, "minute": 59, "second": 59}
+print(f"FISH INTERVAL: {app.fish_interval}")
+
 db.init_app(app)
 csrf = CSRFProtect(app)
 with app.app_context():
@@ -45,6 +54,11 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 # deliver main html page
 @app.route('/', methods=['GET'])
@@ -171,7 +185,7 @@ def get_current_fish():
             'wiki_url': fish.wiki_url,
             'date': fish.last_chosen_week}
         for fish in fish_list]
-    return jsonify({'fish': out}), 200
+    return jsonify({'fish': out, 'fish_interval':app.fish_interval}), 200
 
 # serve public fish images
 @app.route('/fish/<filename>')

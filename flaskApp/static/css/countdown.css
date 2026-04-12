@@ -1,0 +1,61 @@
+#countdown-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-family: "Trebuchet MS";
+  border: 3px dashed #8a9696;
+  padding-right: 5px;
+  padding-left: 5px;
+  margin: 5px 5px;
+  border-radius: 3px;
+}
+
+.countdown-label {
+  font-size: 16px;
+  color: #3f474f;
+  letter-spacing: 0.08em;
+}
+
+.countdown-clock {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #6f7773;
+  border-radius: 8px;
+  border: 3px solid rgba(191, 155, 48, 1);
+  padding: 8px 12px;
+  min-width: 54px;
+}
+
+.countdown-unit span {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+  color: #3f474f;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-unit em {
+  font-style: normal;
+  font-size: 11px;
+  color: #a5a4a4;
+  margin-top: 4px;
+}
+
+.countdown-sep {
+  font-size: 22px;
+  font-weight: 500;
+  color: rgba(191, 155, 48, 1);
+  margin-bottom: 14px; 
+}
+
+#countdown-wrap.urgent .countdown-unit span {
+  color: rgba(212, 175, 55, 1);
+}

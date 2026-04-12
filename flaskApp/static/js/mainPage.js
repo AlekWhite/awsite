@@ -2,7 +2,6 @@ let selectedFishImg = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     loadFish();
-    scheduleFridayRefresh();
 });
 
 function showLoading() {
@@ -21,7 +20,7 @@ async function loadFish() {
         const response = await fetch('/api/fish');
         const data = await response.json();
         console.log(data);
-
+        scheduleRefresh(data.fish_interval);
         const fishBox = document.getElementById('fish_box');
         const imageLoadPromises = [];
         fishBox.innerHTML = ''; 
@@ -77,11 +76,7 @@ function set_main_fish(fish, img) {
 
     const nowt = new Date();
     const now = Date.UTC(nowt.getUTCFullYear(), nowt.getUTCMonth(), nowt.getUTCDate());
-    console.log(d);
-    console.log(date_text);
-    console.log(now);
     const diffDays = (now - d) / (1000 * 60 * 60 * 24);
-    console.log(diffDays);
     if (diffDays >= 0 && diffDays < 7){
         document.getElementById('fotw_title').innerText = "This week's fish:";
         document.getElementById('fotw_div').style.backgroundImage = "url('static/css/img/fish_bg.png')";
@@ -91,20 +86,59 @@ function set_main_fish(fish, img) {
     }
 }
 
-function scheduleFridayRefresh() {
+function scheduleRefresh(interval) {
+    const DAY_MAP = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+
     const now = new Date();
     const nyNow = new Date(
         now.toLocaleString('en-US', { timeZone: 'America/New_York' })
     );
-    const daysUntilFriday = (5 - nyNow.getDay() + 7) % 7;
-    const nextFriday = new Date(nyNow);
-    nextFriday.setDate(nyNow.getDate() + daysUntilFriday);
-    nextFriday.setHours(0, 0, 0, 0);
-    if (daysUntilFriday === 0 && nyNow >= nextFriday) {
-        nextFriday.setDate(nextFriday.getDate() + 7);
+
+    const targetDay = DAY_MAP[interval.day_of_week.toLowerCase()];
+    let daysUntil = (targetDay - nyNow.getDay() + 7) % 7;
+    const nextTarget = new Date(nyNow);
+    nextTarget.setDate(nyNow.getDate() + daysUntil);
+    nextTarget.setHours(interval.hour, interval.minute, interval.second, 0);
+    if (nyNow >= nextTarget) {
+        nextTarget.setDate(nextTarget.getDate() + 7);
     }
-    const delayMs = nextFriday - nyNow;
+    const delayMs = nextTarget - nyNow;
+
+    console.log("Refresh in " + delayMs + "ms");
+    startCountdown(delayMs);
     setTimeout(() => {
         location.reload();
-    }, delayMs);
+    }, delayMs+1000);
+}
+
+function startCountdown(delayMs) {
+    const endTime = Date.now() + delayMs;
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick() {
+        const diff = endTime - Date.now();
+        const wrap = document.getElementById('countdown-wrap');
+
+        if (diff <= 0) {
+            ['days','hours','mins','secs'].forEach(id =>
+                document.getElementById('cd-' + id).textContent = '00'
+            );
+            return;}
+
+        const totalSecs = Math.floor(diff / 1000);
+        const days  = Math.floor(totalSecs / 86400);
+        const hours = Math.floor((totalSecs % 86400) / 3600);
+        const mins  = Math.floor((totalSecs % 3600) / 60);
+        const secs  = totalSecs % 60;
+
+        document.getElementById('cd-days').textContent  = days;
+        document.getElementById('cd-hours').textContent = pad(hours);
+        document.getElementById('cd-mins').textContent  = pad(mins);
+        document.getElementById('cd-secs').textContent  = pad(secs);
+
+        if (wrap) wrap.classList.toggle('urgent', diff < 60000);
+    }
+
+    tick();
+    setInterval(tick, 1000);
 }

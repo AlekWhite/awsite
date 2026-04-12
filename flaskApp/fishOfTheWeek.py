@@ -67,10 +67,10 @@ class FishOfTheWeek(threading.Thread):
         scheduler.add_job(
             func=self.pick_new_fish,
             trigger=CronTrigger(
-                day_of_week='sun',  
-                hour=23,            
-                minute=59,          
-                second=59,          
+                day_of_week = self.app.fish_interval['day_of_week'],  
+                hour = self.app.fish_interval['hour'],            
+                minute = self.app.fish_interval['minute'],          
+                second = self.app.fish_interval['second'],          
                 timezone=pytz.timezone('America/New_York')
             ),
             id='weekly_fish_update',
