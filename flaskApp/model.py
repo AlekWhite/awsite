@@ -124,9 +124,12 @@ class FishOfTheWeek(db.Model):
     def mark_as_chosen(self):
         """Mark this fish as chosen for current week"""
         from datetime import date, timedelta
-        today = date.today()
+        import pytz
+        tz = pytz.timezone("America/New_York")
+        today = datetime.now(tz).date()
         monday = today - timedelta(days=today.weekday())
         self.last_chosen_week = monday
+        print(f"New Fish @ {monday}")
         db.session.commit()
 
     """

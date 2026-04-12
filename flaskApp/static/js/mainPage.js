@@ -71,12 +71,18 @@ function set_main_fish(fish, img) {
     const date_text = d.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timezone: 'UTC'
     });
 
-    const now = new Date();
+    const nowt = new Date();
+    const now = Date.UTC(nowt.getUTCFullYear(), nowt.getUTCMonth(), nowt.getUTCDate());
+    console.log(d);
+    console.log(date_text);
+    console.log(now);
     const diffDays = (now - d) / (1000 * 60 * 60 * 24);
-    if (diffDays >= 0 && diffDays <= 7){
+    console.log(diffDays);
+    if (diffDays >= 0 && diffDays < 7){
         document.getElementById('fotw_title').innerText = "This week's fish:";
         document.getElementById('fotw_div').style.backgroundImage = "url('static/css/img/fish_bg.png')";
     } else {

@@ -14,7 +14,7 @@ import json
 import pytz
 import os
 
-from model import User, Arduino, FishOfTheWeek, TemperatureData, RGBLightValue, CurrentTemperature, db 
+from model import User, Arduino, FishOfTheWeek, TemperatureData, RGBLightValue, CurrentTemperature, db
 
 # pull info from .env
 load_dotenv()
