@@ -5,16 +5,18 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/mainPage.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/fishPage.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/countdown.css') }}" />
-    <script src="{{ url_for('static', filename='js/mainPage.js') }}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/game.css') }}" />
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
     <script src="{{ url_for('static', filename='js/countdown.js') }}"></script>
-
     <div id="loading_screen">Loading fish…</div>
+
+
     <div id="app" hidden>
 
         <div class="headerDiv">
             <form action="/">
                 <button type="submit" class="icoButton">
-                    <h2><b>The fish of the week</b></h2>
+                    <h2><b>Guess the fish</b></h2>
                 </button>
             </form>
          
@@ -43,25 +45,27 @@
             </div>
         </div>
 
-        <div class="fotwDiv" id="fotw_div">
-            <div id="fish_name_div" class="mainDiv" style="width: 500px;">
-                <span id="fotw_title" class="mainText">This week's fish:</span>
-                <span id="fotw_name" class="mainText"></span>
+        <div class="mainDiv" style="min-width: fit-content; width: 20%;">
+            <div id="fish_img" class="gameDiv" style="width: 520px; height: 520px;"></div>
+        </div>
+
+        <div class="mainDiv" style="min-width: fit-content; width: 20%;">
+            <div class="gameDiv">
+                <b class="mainText" id="known_string"></b>
             </div>
-            <div id="current_fish_div">
-            </div>
-            <div id="fish_link_div" class="mainDiv" style="width: 500px;">
-                <span class="mainText">Wiki Link:</span>
-                <a style="margin-top: 10px; color: #394047;" id="fotw_link" href="" target="_blank" rel="noopener noreferrer"></a>
+            <div class="gameDiv">
+                <span class="mainText" id="attempts"><span>
             </div>
         </div>
 
-        <div class="winners">
-            <div class="mainDiv" style="width: 500px;">
-                <span class="mainText">Previous Winners:</span>
-            </div>
-            <div id="fish_box" class="fish_box">
-            </div>
+        <div class="mainDiv" style="min-width: fit-content; width: 20%;">
+            <form id="guess_form" class="gameDiv">
+                <span class="mainText" >Submit a guess</span>
+                <p class="mainText">Guess a letter or guess the fish:
+                    <label><input id="guess" class="mainTextInp" type="text"/></label>
+                </p>
+                <input class="mainButton" type="submit" value="Submit" />
+            </form>
         </div>
 
     </div>

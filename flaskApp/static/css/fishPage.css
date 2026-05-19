@@ -5,7 +5,7 @@
 
 .winners,
 .fotwDiv{
-    background-image: url('img/fish_bg.png');
+    background: rgba(42, 86, 110, 1);
     margin-top: 20px;
     margin-left: 25px;
     display: flex;
@@ -13,6 +13,7 @@
     width: 40%;
     min-width: 650px;
     height: fit-content;
+    min-height: 20%;
     justify-content: center;
     border: 5px solid rgb(17, 17, 17);
     box-shadow: 0 12px 16px rgba(0, 0, 0, 0.1);
@@ -80,4 +81,14 @@
 }
 .small_fish:hover{
     border: 5px solid rgba(191, 155, 48, 1);
+}
+
+.current_div{
+    background-image: url('img/fish_bg.png');
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 5px solid rgb(31, 31, 31);
+    border-radius: 6px;
 }

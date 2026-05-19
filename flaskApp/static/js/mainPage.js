@@ -20,10 +20,21 @@ async function loadFish() {
         const response = await fetch('/api/fish');
         const data = await response.json();
         console.log(data);
-        scheduleRefresh(data.fish_interval);
-        const fishBox = document.getElementById('fish_box');
         const imageLoadPromises = [];
-        fishBox.innerHTML = ''; 
+
+        const res = await fetch("/current_fish");
+        const html = await res.text();
+
+        const fishBox = document.getElementById('fish_box');
+        fishBox.innerHTML = html;
+        fishBox.querySelector("#show").addEventListener("click", show_current_fish);
+        fishBox.querySelector("#outer").style.backgroundImage = "url('static/css/img/blue_bg.png')";
+        const fish_spot = document.getElementById('current_fish_div');
+        fish_spot.innerHTML = `<form action="/guess_the_fish"><button style="background: transparent; border: none;" type="submit">${html}</button></form>`;
+        fish_spot.querySelector("#helper").innerText = "Click to guess the fish!";
+        document.getElementById('fish_name_div').style.display = "none";
+        document.getElementById('fish_link_div').style.display = "none";
+
         data.fish.forEach(fish => {
 
             const img = document.createElement('img');
@@ -43,7 +54,7 @@ async function loadFish() {
         });
 
         await Promise.all(imageLoadPromises);
-        set_main_fish(data.fish[0], document.getElementById(data.fish[0].name + "_fishImg"))
+        //set_main_fish(data.fish[0], document.getElementById(data.fish[0].name + "_fishImg"));
 
     } catch (error) {
         console.error('Error loading fish:', error);
@@ -57,7 +68,12 @@ function set_main_fish(fish, img) {
     img.classList.add('selected');
     selectedFishImg = img;
 
-    document.getElementById('fotw_img').src = `/fish/${fish.name}.png`;
+    const fish_spot = document.getElementById('current_fish_div');
+    const img_html = `<img id="fotw_img" style="width: 500px; height: 500px; margin: 10px;" src="/fish/${fish.name}.png" alt="fish">`;
+    fish_spot.innerHTML = img_html;
+
+    document.getElementById('fish_name_div').style.display = "flex";
+    document.getElementById('fish_link_div').style.display = "flex";
     document.getElementById('fotw_name').innerText = fish.name;
     document.getElementById('fotw_link').href = fish.wiki_url;
     document.getElementById('fotw_link').innerText = fish.wiki_url;
@@ -86,59 +102,17 @@ function set_main_fish(fish, img) {
     }
 }
 
-function scheduleRefresh(interval) {
-    const DAY_MAP = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-
-    const now = new Date();
-    const nyNow = new Date(
-        now.toLocaleString('en-US', { timeZone: 'America/New_York' })
-    );
-
-    const targetDay = DAY_MAP[interval.day_of_week.toLowerCase()];
-    let daysUntil = (targetDay - nyNow.getDay() + 7) % 7;
-    const nextTarget = new Date(nyNow);
-    nextTarget.setDate(nyNow.getDate() + daysUntil);
-    nextTarget.setHours(interval.hour, interval.minute, interval.second, 0);
-    if (nyNow >= nextTarget) {
-        nextTarget.setDate(nextTarget.getDate() + 7);
+async function show_current_fish(){
+    const response = await fetch('/api/the_fish');
+    const data = await response.json();
+    if (data.fish) {
+        const img = document.createElement('img');
+        img.id = data.fish.name + "_fishImg";
+        img.src = `/fish/${data.fish.name}.png`;
+        img.alt = data.fish.name;
+        img.classList.add('small_fish');
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', () => set_main_fish(data.fish, img));
+        set_main_fish(data.fish, img);
     }
-    const delayMs = nextTarget - nyNow;
-
-    console.log("Refresh in " + delayMs + "ms");
-    startCountdown(delayMs);
-    setTimeout(() => {
-        location.reload();
-    }, delayMs+1000);
-}
-
-function startCountdown(delayMs) {
-    const endTime = Date.now() + delayMs;
-    function pad(n) { return String(n).padStart(2, '0'); }
-
-    function tick() {
-        const diff = endTime - Date.now();
-        const wrap = document.getElementById('countdown-wrap');
-
-        if (diff <= 0) {
-            ['days','hours','mins','secs'].forEach(id =>
-                document.getElementById('cd-' + id).textContent = '00'
-            );
-            return;}
-
-        const totalSecs = Math.floor(diff / 1000);
-        const days  = Math.floor(totalSecs / 86400);
-        const hours = Math.floor((totalSecs % 86400) / 3600);
-        const mins  = Math.floor((totalSecs % 3600) / 60);
-        const secs  = totalSecs % 60;
-
-        document.getElementById('cd-days').textContent  = days;
-        document.getElementById('cd-hours').textContent = pad(hours);
-        document.getElementById('cd-mins').textContent  = pad(mins);
-        document.getElementById('cd-secs').textContent  = pad(secs);
-
-        if (wrap) wrap.classList.toggle('urgent', diff < 60000);
-    }
-
-    tick();
-    setInterval(tick, 1000);
 }

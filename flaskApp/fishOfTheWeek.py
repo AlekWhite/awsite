@@ -1,10 +1,12 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from model import FishOfTheWeek as fishBowl
+from PIL import Image
 import threading
 import shutil
 import time
 import pytz
+import PIL
 import os
 
 """
@@ -55,6 +57,17 @@ class FishOfTheWeek(threading.Thread):
         # read db, make chosen fish public
         with self.app.app_context():
             fish_list = fishBowl.get_fish()
+
+        if fish_list:
+            self.make_fish_pix(16, fish_list[0].fish_name)
+            self.make_fish_pix(32, fish_list[0].fish_name)
+            self.make_fish_pix(64, fish_list[0].fish_name)
+
+            for i in range(3):
+                filename = f"guess_the_fish_{2 ** (i+4)}.png"
+                if os.path.isfile(os.path.join(self.app.static_folder, filename)):
+                    shutil.copy2(os.path.join(self.app.static_folder, filename), os.path.join(self.public_dir, filename))
+
         for fish in fish_list:
             filename = fish.fish_name + ".png"
             if os.path.isfile(os.path.join(self.private_dir, fish.fish_name + ".png")):
@@ -63,6 +76,7 @@ class FishOfTheWeek(threading.Thread):
 
     # schedule the selection of a new fish (once a week)
     def run(self):
+        print("Adding cron job . . .")
         scheduler = BackgroundScheduler(timezone=pytz.timezone('America/New_York'))
         scheduler.add_job(
             func=self.pick_new_fish,
@@ -83,6 +97,36 @@ class FishOfTheWeek(threading.Thread):
                 threading.Event().wait(1)
         except (KeyboardInterrupt, SystemExit):
             scheduler.shutdown()
+
+    def make_fish_pix(self, factor=3, fish_name=""):
+        colors = [[[[0, 0, 0], 0] for j in range(factor)] for i in range(factor)]
+        file_path = os.path.join(self.private_dir, fish_name + ".png")
+        img = Image.open(file_path)
+        pixels = img.load()
+        div = float(img.size[0] / factor)
+
+        for i in range(img.size[0]):
+            for j in range(img.size[1]):
+                colors[int(i / div)][int(j / div)][1] += 1
+                colors[int(i / div)][int(j / div)][0][0] += pixels[i, j][0]
+                colors[int(i / div)][int(j / div)][0][1] += pixels[i, j][1]
+                colors[int(i / div)][int(j / div)][0][2] += pixels[i, j][2]
+
+        for i in range(factor):
+            for j in range(factor):
+                color = (int(colors[i][j][0][0] / colors[i][j][1]),
+                         int(colors[i][j][0][1] / colors[i][j][1]),
+                         int(colors[i][j][0][2] / colors[i][j][1]))
+                colors[i][j][0] = color
+
+        newImg = PIL.Image.new(mode="RGB", size=img.size)
+        newPix = newImg.load()
+        for i in range(img.size[0]):
+            for j in range(img.size[1]):
+                newPix[i, j] = colors[int(i / div)][int(j / div)][0]
+
+        file_path = os.path.join(self.app.static_folder, f"guess_the_fish_{factor}.png")
+        newImg.save(file_path)
 
     """
     Functions for generating fish images 

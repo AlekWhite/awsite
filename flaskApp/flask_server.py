@@ -14,6 +14,7 @@ from threading import Thread
 import json
 import pytz
 import os
+import re
 
 from model import User, Arduino, FishOfTheWeek, TemperatureData, RGBLightValue, CurrentTemperature, db
 
@@ -62,6 +63,7 @@ def favicon():
 
 # deliver main html page
 @app.route('/', methods=['GET'])
+@limiter.limit("15 per minute")
 def main_page():
     return render_template("mainPage.html")
 
@@ -175,16 +177,38 @@ def temperature():
     out = {"chartData": chart_data, "ct": ct_out}
     return jsonify(out), 200
 
-# gets current fish from the db
+# gets previous fish from the db
 @app.route('/api/fish', methods=['GET'])
 @limiter.limit("60 per minute")
-def get_current_fish():
+def get_old_fish():
     fish_list = FishOfTheWeek.get_fish()
+    if fish_list:
+        fish_list.pop(0)
     out = [{
             'name': fish.fish_name,
             'wiki_url': fish.wiki_url,
             'date': fish.last_chosen_week}
         for fish in fish_list]
+    return jsonify({'fish': out, 'fish_interval':app.fish_interval}), 200
+
+# gets time until next fish
+@app.route('/api/time', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_fish_time():
+    return jsonify({'fish_interval':app.fish_interval}), 200
+
+# gets current fish from the db
+@app.route('/api/the_fish', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_the_fish():
+    fish_list = FishOfTheWeek.get_fish()
+    out = {}
+    if fish_list:
+        fish = fish_list[0]
+        out = {
+            'name': fish.fish_name,
+            'wiki_url': fish.wiki_url,
+            'date': fish.last_chosen_week}
     return jsonify({'fish': out, 'fish_interval':app.fish_interval}), 200
 
 # serve public fish images
@@ -201,3 +225,56 @@ def serve_public_fish(filename):
     response.headers['Cache-Control'] = 'public, max-age=604800'
     response.headers['Vary'] = 'Accept-Encoding'
     return response
+
+@app.route("/current_fish")
+@limiter.limit("60 per minute")
+def fish_box():
+    return render_template("current_fish.html")
+
+# deliver main html page
+@app.route('/guess_the_fish', methods=['GET'])
+@limiter.limit("15 per minute")
+def game_page():
+    return render_template("guess_the_fish.html")
+
+# gets temperature data from the db
+@app.route('/api/guess', methods=['POST'])
+@limiter.limit("15 per minute")
+@csrf.exempt
+def guess():
+     if request.method == 'POST':
+
+        fish_list = FishOfTheWeek.get_fish()
+        fish_name = ""
+        if fish_list:
+            fish_name = fish_list[0].fish_name.strip().lower()
+        if not fish_name:
+            out = {"hits": ""}
+            return jsonify(out), 200
+
+        data = request.get_json()
+        guess_in = data.get("guess")
+        guess = re.findall(r"^[a-z ]+$", guess_in)
+        if guess:
+            guess = guess[0]
+        print(guess)
+
+        if guess == fish_name:
+            out = {"hits": fish_name}
+            return jsonify(out), 200
+
+        else:
+            if len(guess) != 1:
+                guess = " "
+
+            hits = ""
+            for c in fish_name:
+                if c == " ":
+                    hits += " "
+                elif c == guess:
+                    hits += c
+                else:
+                    hits += "_"
+            out = {"hits": hits}
+            return jsonify(out), 200
+
