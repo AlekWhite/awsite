@@ -21,8 +21,8 @@ async function loadFish() {
         const user_res = await fetch("/api/user");
         if (!user_res.ok){
             const mk_res = await fetch("/api/make_user");
-            if (!mk_res.ok){ 
-                throw new Error(`HTTP error! Status: ${mk_res.status}`); 
+            if (!mk_res.ok){
+                console.log(mk_res.status);
             } 
         }
 

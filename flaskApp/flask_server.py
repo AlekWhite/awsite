@@ -287,7 +287,7 @@ def guess():
 
 # make an new user in the db
 @app.route('/api/make_user', methods=["GET"])
-@limiter.limit("3 per hour")
+@limiter.limit("10 per hour")
 @csrf.exempt
 def make_user():
     user_id = request.cookies.get('guestToken')
