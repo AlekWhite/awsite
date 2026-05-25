@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, timedelta, datetime, timezone
 import datetime as dt
-from sqlalchemy import func
+from sqlalchemy import func, text
 import uuid
 
 db = SQLAlchemy()
@@ -222,6 +222,13 @@ class GameUser(db.Model):
     def create(cls, name: str, known_string: str, yellows: str = None,
                fails: str = None, final_score: int = 0,
                is_leaderboard_eligible: bool = True)-> 'GameUser':
+        
+        db.session.execute(text("""
+        DELETE FROM gameUsers
+        WHERE final_score = 0
+        AND guess_date < NOW() - INTERVAL '1 hour'
+        """))
+
         user = cls(
             name=name,
             known_string=known_string,

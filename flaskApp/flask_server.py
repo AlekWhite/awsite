@@ -103,6 +103,14 @@ def game_page():
 def lb_page():
     return render_template("leaderboard.html")
 
+# admin page
+@app.route('/admin_page', methods=['GET'])
+@limiter.limit("15 per minute")
+def admin_page():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth_page'))
+    return render_template("admin.html")
 
 """ <--------------- FISH API ---------------> """
 
@@ -220,7 +228,7 @@ def guess():
 
         # do single letter guesses 
         if len(guess) == 1:
-            ap += 1000
+            ap += 1000000
             if guess not in fish_name:
                 if guess not in fa:
                     fa += guess
@@ -268,7 +276,7 @@ def guess():
             total_points = 10000
             letter_pen = total_points / (-2*len(fish_name))
             phrase_pen = letter_pen / 2
-            ap = -1*(total_points + int(phrase_pen*((ap % 1000)-1)) + int(letter_pen*int(ap/1000)))
+            ap = -1*(total_points + int(phrase_pen*((ap % 1000000)-1)) + int(letter_pen*int(ap/1000000)))
             if ap > 0:
                 ap = -1  
 
@@ -301,6 +309,7 @@ def make_user():
             user.id,
             httponly=True,
             samesite='Lax',
+            secure=True,
             max_age=60 * 60 * 24 * 365 * 2
         )
         return response
@@ -339,6 +348,122 @@ def new_user_name():
     
     return jsonify({'error':  True}), "400 Name can only have characters [a-z] and [0-9]"
 
+""" <--------------- ADMIN ---------------> """
+
+from flask import redirect, url_for, make_response
+from werkzeug.security import check_password_hash
+from itsdangerous import URLSafeTimedSerializer
+from model import User
+import json
+
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+# login for the web-app clients 
+@app.route('/auth_page', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def auth_page():
+    print(request.method)
+    if request.method == 'GET':
+        user = get_current_user()
+        if not user:
+            return render_template("authPage.html")
+        return redirect(url_for('admin_page'))
+
+
+    un = request.form.get("Username").strip()
+    pw = request.form.get("Password").strip()
+    if not un or not pw or len(un) > 100 or len(pw) > 100:
+        return json.dumps({"error": "Invalid credentials"}), 401
+    user = User.query.filter_by(username=un).first()
+
+    if not user or not check_password_hash(user.password_hash, pw):
+        return json.dumps({"error": "Invalid credentials"}), 401
+    
+    response = make_response(redirect(url_for('admin_page')))
+    token = serializer.dumps(user.id, salt='auth-cookie')
+    response.set_cookie(
+        'authToken',
+        token,
+        httponly=True,
+        secure=True,
+        samesite='Lax',
+        max_age=60 * 60 
+    )
+    return response
+
+# logout
+@app.route('/logout', methods=['POST'])
+@limiter.limit("10 per minute")
+def logout():
+    response = redirect(url_for('main_page'))
+    response.delete_cookie('authToken', httponly=True, samesite='Lax', secure=True)
+    return response
+
+def get_current_user():
+    token = request.cookies.get('authToken')
+    if not token:
+        return None
+    try:
+        user_id = serializer.loads(token, salt='auth-cookie', max_age=3600)
+        return User.query.get(user_id)
+    except Exception:
+        return None
+    
+@app.route('/api/admin/records', methods=['GET'])
+@limiter.limit("15 per minute")
+def admin_records():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth_page'))
+    page = request.args.get('p', default=0, type=int)
+    per_page = 50
+    records = (GameUser.query
+               .order_by(GameUser.guess_date.desc())
+               .offset(page * per_page)
+               .limit(per_page)
+               .all())
+    return jsonify({
+        'page': page,
+        'per_page': per_page,
+        'records': [r.to_dict() for r in records]
+    })
+
+@app.route('/api/admin/update', methods=['POST'])
+@limiter.limit("60 per minute")
+def admin_update():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth_page'))
+    data = request.get_json()
+    if not data or 'id' not in data:
+        return jsonify({'error': 'Missing id'}), 400
+    record = GameUser.get_by_id(data['id'])
+    if not record:
+        return jsonify({'error': 'Record not found'}), 404
+    allowed = {'name', 'known_string', 'yellows', 'fails',
+               'final_score', 'is_leaderboard_eligible', 'guess_date'}
+    updates = {k: v for k, v in data.items() if k in allowed}
+    if not updates:
+        return jsonify({'error': 'No valid fields to update'}), 400
+    record.update(**updates)
+    return jsonify({'status': 'ok', 'record': record.to_dict()})
+
+@app.route('/api/admin/delete', methods=['POST'])
+@limiter.limit("60 per minute")
+def admin_delete():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('auth_page'))
+    data = request.get_json()
+    if not data or 'id' not in data:
+        return jsonify({'error': 'Missing id'}), 400
+    success = GameUser.delete_by_id(data['id'])
+    if not success:
+        return jsonify({'error': 'Record not found'}), 404
+    return jsonify({
+        'status': 'ok',
+        'deleted_id': data['id']
+    })
      
 """ <--------------- OLD THINGS ---------------> """
 
@@ -349,27 +474,6 @@ from flask import redirect, url_for, session
 from datetime import datetime
 import pytz
 import json
-
-# login for the web-app clients 
-@app.route('/auth_page', methods=['GET', 'POST'])
-@limiter.limit("15 per minute")
-def auth_page():
-    if request.method == 'GET':
-        return render_template("authPage.html")
-
-    un = request.form.get("Username").strip()
-    pw = request.form.get("Password").strip()
-    if not un or not pw or len(un) > 100 or len(pw) > 100:
-        return json.dumps({"error": "Invalid credentials"}), 401
-    print(request.form)
-    user = User.query.filter_by(username=un).first()
-
-    if not user or not check_password_hash(user.password_hash, pw):
-        return json.dumps({"error": "Invalid credentials"}), 401
-    session.clear()
-    session.permanent = True
-    session['user_id'] = user.id
-    return redirect(url_for("dashboard"))
 
 # private dashboard page
 @app.route('/dashboard', methods=['GET', 'POST'])

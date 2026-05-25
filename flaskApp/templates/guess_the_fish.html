@@ -57,34 +57,31 @@
             </div>
         </div>
 
-        <div class="mainDiv" style="min-width: fit-content; width: 20%; flex-direction: column;">
+        <div class="mainDiv" style="min-width: fit-content; flex-direction: column; align-items: center;">
             <div id="fish_img" class="gameDiv" style="width: 520px; height: 520px;"></div>
 
             <div class="gameDiv" style="width: 520px; align-items: center; background: rgb(62, 70, 75);">
-                <span class="mainText" id="lb_status">Leaderboard Status: Ineligible</span>
+                <span class="mainText" id="lb_status" style="font-size: 20px;">Leaderboard Status: Ineligible</span>
                 <form id="un_form" style="flex-direction: row; align-items: center; display: flex;">
-                    <span class="mainText" id="helper_text" >Change username:</span>
+                    <span class="mainText" style="color: rgb(146, 143, 143);">Change username:</span>
                     <label><input id="user_name" style="margin-top: 10px; font-size: 12pt;" class="tb" type="text"/></label>
-                    <input id="name_sub" class="mainButton" style="margin-left: 10px;" value="Submit" />
+                    <input id="name_sub" class="mainButton" style="margin-left: 10px;  width: 75px; background: rgb(146, 143, 143); text-align: center; border: 2px solid #404143;" value="Submit" />
                 </form>
                 <span class="mainText" id="error"></span>
             </div>
 
         </div>
+        
+        <div class="mainDiv" style="min-width: fit-content; flex-direction: column; align-items: center;">
 
-        <div class="mainDiv" style="min-width: fit-content; width: 20%; flex-direction: column; align-items: center;">
-            <div id="letters" style="flex-direction: column; align-items: center; display: flex;" ></div>
-            <div class="gameDiv" style="flex-direction: row; align-items: center; display: flex; width: 95%;">
-                <span class="mainText" id="attempts_phr">Phrase Guesses: 0</span>
-                <span class="mainText" id="attempts_let">Letter Guesses: 0</span>
-                <span class="mainText" id="score"></span>
+            <div id="letters" class="letterDiv" ></div>
+            <div id="letters_cur" class="letterDiv">
+                <span class="mainText" id="helper_text" >Guess a letter or phrase</span>
             </div>
 
-            <form id="guess_form" class="gameDiv" style="min-width: 600px; max-width: 95vw; flex-direction: column;">
-
+            <form id="guess_form" class="gameDiv" style="width: 95%; flex-direction: column;">
                 <div style="flex-direction: row;">
-                    <span class="mainText" id="helper_text" >Guess a letter or phrase</span>
-                    <label><input id="guess" style="margin-top: 10px;" class="tb" type="text"/></label>
+                    <label><input hidden id="guess" style="margin-top: 10px;" class="tb" type="text"/></label>
                 </div>
 
                 <div class="gameDiv" style="flex-direction: column; border: none;">
@@ -93,8 +90,14 @@
                     <div style="flex-direction: row; border: none;" class="gameDiv" id="kb_3"></div>
                     <div style="flex-direction: row; border: none;" class="gameDiv" id="kb_4"></div>
                 </div>
-
             </form>
+
+            <div class="gameDiv" style="flex-direction: row; align-items: center; display: flex; width: 95%;">
+                <span class="mainText" id="attempts_phr">Phrase Guesses: 0</span>
+                <span class="mainText" id="attempts_let">Letter Guesses: 0</span>
+                <span class="mainText" style="color: rgb(204, 213, 76);; font-size: 25pt;" id="score"></span>
+            </div>
+
         </div>
     </div>
 </body>
