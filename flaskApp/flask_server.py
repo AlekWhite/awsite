@@ -1,22 +1,16 @@
-from flask import Flask, request, session, render_template, redirect, url_for, jsonify, abort, send_from_directory
-from werkzeug.security import check_password_hash
+from flask import Flask, request, render_template, jsonify, abort, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
-from sqlalchemy import select, update
-from flask import app as application
-from datetime import timedelta, datetime
 from flask import send_from_directory
+from flask_limiter import Limiter
 from dotenv import load_dotenv
-from threading import Thread
-import json
-import pytz
+from datetime import timedelta
+import random
 import os
 import re
 
-from model import User, Arduino, FishOfTheWeek, TemperatureData, RGBLightValue, CurrentTemperature, db
+from model import Arduino, FishOfTheWeek, GameUser, db
 
 # pull info from .env
 load_dotenv()
@@ -37,10 +31,13 @@ app.config['CACHE_TYPE'] = 'simple'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 604800 
 
 # edit fish update interval here 
+#import pytz
+#from datetime import datetime
 #est = pytz.timezone("America/New_York")
 #now = datetime.now(est)
 #target = now + timedelta(minutes=2)
 #app.fish_interval = {"day_of_week": target.strftime("%a").lower(), "hour": target.hour, "minute": target.minute, "second": target.second}
+
 app.fish_interval = {"day_of_week": 'fri', "hour": 23, "minute": 59, "second": 59}
 print(f"FISH INTERVAL: {app.fish_interval}")
 
@@ -56,16 +53,302 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
+
+""" <--------------- ICO/IMAGE FILES ---------------> """
+
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+# serve public fish images
+@app.route('/fish/<filename>')
+@limiter.limit("100 per minute")
+def serve_public_fish(filename):
+    public_dir = os.path.join(app.static_folder, 'fish', 'public')
+    if not filename or '/' in filename or '\\' in filename or '..' in filename:
+        abort(404)
+    file_path = os.path.join(public_dir, filename)
+    if not os.path.exists(file_path):
+        abort(404)  
+    response = send_from_directory(public_dir, filename)
+    response.headers['Cache-Control'] = 'public, max-age=604800'
+    response.headers['Vary'] = 'Accept-Encoding'
+    return response
+
+
+""" <--------------- PAGES ---------------> """
+
 
 # deliver main html page
 @app.route('/', methods=['GET'])
 @limiter.limit("15 per minute")
 def main_page():
     return render_template("mainPage.html")
+
+# deliver guess_the_fish page
+@app.route('/guess_the_fish', methods=['GET'])
+@limiter.limit("15 per minute")
+def game_page():
+    user_id = request.cookies.get('guestToken')
+    user = GameUser.get_by_id(user_id)
+    if not user:
+        return render_template("mainPage.html")
+    return render_template("guess_the_fish.html")
+
+# deliver main html page
+@app.route('/leaderboard', methods=['GET'])
+@limiter.limit("15 per minute")
+def lb_page():
+    return render_template("leaderboard.html")
+
+
+""" <--------------- FISH API ---------------> """
+
+
+# gets previous fish from the db
+@app.route('/api/fish', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_old_fish():
+    fish_list = FishOfTheWeek.get_fish()
+    if fish_list:
+        fish_list.pop(0)
+    out = [{
+            'name': fish.fish_name,
+            'wiki_url': fish.wiki_url,
+            'date': fish.last_chosen_week}
+        for fish in fish_list]
+    return jsonify({'fish': out, 'fish_interval':app.fish_interval}), 200
+
+# gets time until next fish
+@app.route('/api/time', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_fish_time():
+    return jsonify({'fish_interval':app.fish_interval}), 200
+
+# gets current fish from the db
+@app.route('/api/the_fish', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_the_fish():
+
+    user_id = request.cookies.get('guestToken')
+    user = GameUser.get_by_id(user_id)
+    if not user:
+        return render_template("mainPage.html")
+    elif user.final_score >= 0:
+        user.update(is_leaderboard_eligible=False)
+
+    fish_list = FishOfTheWeek.get_fish()
+    out = {}
+    if fish_list:
+        fish = fish_list[0]
+        out = {
+            'name': fish.fish_name,
+            'wiki_url': fish.wiki_url,
+            'date': fish.last_chosen_week}
+    return jsonify({'fish': out, 'fish_interval':app.fish_interval}), 200
+
+# gets leaderboard
+@app.route('/api/leaderboard', methods=['GET'])
+@limiter.limit("60 per minute")
+def get_leaderboard():
+    return jsonify([{
+        column.name: getattr(user, column.name)
+        for column in user.__table__.columns}
+    for user in GameUser.get_leaderboard()])
+
+@app.route('/api/guess', methods=['POST'])
+@limiter.limit("15 per minute")
+@csrf.exempt
+def guess():
+     if request.method == 'POST':
+
+        # get user
+        user_id = request.cookies.get('guestToken')
+        user = GameUser.get_by_id(user_id)
+        if not user:
+            return render_template("mainPage.html")
+        
+        # get fish
+        fish_list = FishOfTheWeek.get_fish()
+        fish_name = ""
+        if fish_list:
+            fish_name = fish_list[0].fish_name.strip().lower()
+        if not fish_name:
+            return "", "500 No fish found :("
+
+        # get guess
+        data = request.get_json()
+        guess_in = data.get("guess")
+        guess = re.findall(r"^[a-z ]+$", guess_in)
+        if guess:
+            guess = guess[0]
+        if len(guess) > len(fish_name):
+            return "", f"400 The length of your guess cannot exceed {len(fish_name)} characters"
+        
+        # get game vars
+        ks = user.known_string
+        yl = user.yellows.replace(" ", "")
+        fa = user.fails.replace(" ", "")
+        ap = user.final_score
+
+        # check if reset is needed
+        if (str(user.guess_date)[:10] != str(fish_list[0].last_chosen_week)) or (len(ks) != len(fish_name)):
+            user.update(guess_date=fish_list[0].last_chosen_week)
+            guess = []
+            ks = ""
+            yl = ""
+            fa = ""
+            ap = 0
+
+        # dont allow guesses after winning
+        if user.final_score < 0:
+            out = user.to_dict()
+            out["yellows"] = out["yellows"].replace(" ", "")
+            out["fails"] = out["fails"].replace(" ", "")
+            return jsonify(out), 200
+
+        # do empty guess
+        if guess == []:
+            if ks == "":
+                for c in fish_name:
+                    if c == " ":
+                        ks += " "
+                    else:
+                        ks += "_"
+
+        # do single letter guesses 
+        if len(guess) == 1:
+            ap += 1000
+            if guess not in fish_name:
+                if guess not in fa:
+                    fa += guess
+            else:
+                new_ks = ""
+                for i in range(len(fish_name)):
+                    if fish_name[i] == guess:
+                        new_ks += guess
+                    else:
+                        new_ks += ks[i]
+                ks = new_ks
+            
+        # do phrase guesses
+        if len(guess) > 1:
+            ap += 1
+            new_guess = ""
+            for i in range(len(guess)):
+                if guess[i] not in fish_name:
+                    if guess[i] not in fa:
+                        fa += guess[i]
+                    new_guess += "_"
+                else:
+                    new_guess += guess[i]
+ 
+            new_ks = ""
+            for i in range(len(new_guess)):
+                if new_guess[i] == "_":
+                    new_ks += ks[i]
+                    continue
+                if new_guess[i] == fish_name[i]:
+                    new_ks += new_guess[i]
+                elif new_guess[i] not in yl:
+                    yl += new_guess[i]
+                    new_ks += ks[i]
+                else:
+                    new_ks += ks[i]
+
+            offset = len(new_ks)
+            for i in range(len(ks)-offset):
+                new_ks += ks[i+offset]
+            ks = new_ks
+                
+        # if win, get final score
+        if ks == fish_name:
+            total_points = 10000
+            letter_pen = total_points / (-2*len(fish_name))
+            phrase_pen = letter_pen / 2
+            ap = -1*(total_points + int(phrase_pen*((ap % 1000)-1)) + int(letter_pen*int(ap/1000)))
+            if ap > 0:
+                ap = -1  
+
+        # save & return new data
+        user.update(known_string=ks, yellows=yl, fails=fa, final_score=ap)
+        out = user.to_dict()
+        out["known_string"] = ks
+        out["yellows"] = yl
+        out["fails"] = fa
+        out["final_score"] = ap
+        return jsonify(out), 200
+
+
+""" <--------------- USER API ---------------> """
+
+
+# make an new user in the db
+@app.route('/api/make_user', methods=["GET"])
+@limiter.limit("3 per hour")
+@csrf.exempt
+def make_user():
+    user_id = request.cookies.get('guestToken')
+    user = GameUser.get_by_id(user_id)
+    if not user:
+        name = "Guest-" + str(random.randint(1,999999)).rjust(6, '0')
+        user = GameUser.create(name=name, known_string="")
+        response = jsonify({'status': 'ok', 'name': user.name})
+        response.set_cookie(
+            'guestToken',
+            user.id,
+            httponly=True,
+            samesite='Lax',
+            max_age=60 * 60 * 24 * 365 * 2
+        )
+        return response
+    return jsonify({'status': 'ok', 'name': user.name})
+
+# get all user data
+@app.route('/api/user', methods=['GET'])
+@limiter.limit("15 per minute")
+@csrf.exempt
+def user_data():
+    user_id = request.cookies.get('guestToken')
+    user = GameUser.get_by_id(user_id)
+    if not user:
+        return "", "403 no user in cookie"
+    return jsonify(user.to_dict()), 200
+
+# set new username
+@app.route('/api/new_user_name', methods=['POST'])
+@limiter.limit("5 per minute")
+@csrf.exempt
+def new_user_name():
+    user_id = request.cookies.get('guestToken')
+    user = GameUser.get_by_id(user_id)
+
+    if not user:
+        return render_template("mainPage.html")
+    data = request.get_json()
+    new_name = data.get("new_name")
+
+    if len(new_name) > 100:
+        return jsonify({'error': True}), "400 Name cannot exceed 100 characters"
+
+    if re.search(r"^[a-z0-9]+$", new_name):
+        user.update(name=new_name)
+        return jsonify({'status': 'ok', 'name': user.name})
+    
+    return jsonify({'error':  True}), "400 Name can only have characters [a-z] and [0-9]"
+
+     
+""" <--------------- OLD THINGS ---------------> """
+
+"""
+from model import User, TemperatureData, RGBLightValue,  CurrentTemperature
+from werkzeug.security import check_password_hash
+from flask import redirect, url_for, session
+from datetime import datetime
+import pytz
+import json
 
 # login for the web-app clients 
 @app.route('/auth_page', methods=['GET', 'POST'])
@@ -176,105 +459,4 @@ def temperature():
 
     out = {"chartData": chart_data, "ct": ct_out}
     return jsonify(out), 200
-
-# gets previous fish from the db
-@app.route('/api/fish', methods=['GET'])
-@limiter.limit("60 per minute")
-def get_old_fish():
-    fish_list = FishOfTheWeek.get_fish()
-    if fish_list:
-        fish_list.pop(0)
-    out = [{
-            'name': fish.fish_name,
-            'wiki_url': fish.wiki_url,
-            'date': fish.last_chosen_week}
-        for fish in fish_list]
-    return jsonify({'fish': out, 'fish_interval':app.fish_interval}), 200
-
-# gets time until next fish
-@app.route('/api/time', methods=['GET'])
-@limiter.limit("60 per minute")
-def get_fish_time():
-    return jsonify({'fish_interval':app.fish_interval}), 200
-
-# gets current fish from the db
-@app.route('/api/the_fish', methods=['GET'])
-@limiter.limit("60 per minute")
-def get_the_fish():
-    fish_list = FishOfTheWeek.get_fish()
-    out = {}
-    if fish_list:
-        fish = fish_list[0]
-        out = {
-            'name': fish.fish_name,
-            'wiki_url': fish.wiki_url,
-            'date': fish.last_chosen_week}
-    return jsonify({'fish': out, 'fish_interval':app.fish_interval}), 200
-
-# serve public fish images
-@app.route('/fish/<filename>')
-@limiter.limit("100 per minute")
-def serve_public_fish(filename):
-    public_dir = os.path.join(app.static_folder, 'fish', 'public')
-    if not filename or '/' in filename or '\\' in filename or '..' in filename:
-        abort(404)
-    file_path = os.path.join(public_dir, filename)
-    if not os.path.exists(file_path):
-        abort(404)  
-    response = send_from_directory(public_dir, filename)
-    response.headers['Cache-Control'] = 'public, max-age=604800'
-    response.headers['Vary'] = 'Accept-Encoding'
-    return response
-
-@app.route("/current_fish")
-@limiter.limit("60 per minute")
-def fish_box():
-    return render_template("current_fish.html")
-
-# deliver main html page
-@app.route('/guess_the_fish', methods=['GET'])
-@limiter.limit("15 per minute")
-def game_page():
-    return render_template("guess_the_fish.html")
-
-# gets temperature data from the db
-@app.route('/api/guess', methods=['POST'])
-@limiter.limit("15 per minute")
-@csrf.exempt
-def guess():
-     if request.method == 'POST':
-
-        fish_list = FishOfTheWeek.get_fish()
-        fish_name = ""
-        if fish_list:
-            fish_name = fish_list[0].fish_name.strip().lower()
-        if not fish_name:
-            out = {"hits": ""}
-            return jsonify(out), 200
-
-        data = request.get_json()
-        guess_in = data.get("guess")
-        guess = re.findall(r"^[a-z ]+$", guess_in)
-        if guess:
-            guess = guess[0]
-        print(guess)
-
-        if guess == fish_name:
-            out = {"hits": fish_name}
-            return jsonify(out), 200
-
-        else:
-            if len(guess) != 1:
-                guess = " "
-
-            hits = ""
-            for c in fish_name:
-                if c == " ":
-                    hits += " "
-                elif c == guess:
-                    hits += c
-                else:
-                    hits += "_"
-            out = {"hits": hits}
-            return jsonify(out), 200
-
+"""

@@ -36,7 +36,7 @@ CREATE TRIGGER trigger_maintain_avg_temp_limit
     FOR EACH STATEMENT
     EXECUTE FUNCTION maintain_avg_temp_limit();
 
--- current temperature table (stores only the latest reading)
+-- current temperature table
 CREATE TABLE IF NOT EXISTS current_temperature (
     id SERIAL PRIMARY KEY,
     timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -68,3 +68,29 @@ CREATE TABLE IF NOT EXISTS arduino (
     port VARCHAR(100) NOT NULL,
     state VARCHAR(20) NOT NULL CHECK (state IN ('offline', 'online', 'update'))
 );
+
+CREATE TABLE gameUsers (
+    id            VARCHAR(36)  PRIMARY KEY,          -- UUID
+    name          VARCHAR(100) NOT NULL DEFAULT 'guest',
+    known_string  VARCHAR(255) NOT NULL DEFAULT '',
+    yellows       CHAR(26)     NOT NULL DEFAULT '00000000000000000000000000',
+    fails         CHAR(26)     NOT NULL DEFAULT '00000000000000000000000000',
+    final_score   INTEGER      NOT NULL DEFAULT 0,
+    streak        INTEGER      NOT NULL DEFAULT 0,
+    is_leaderboard_eligible BOOLEAN NOT NULL DEFAULT TRUE,
+    guess_date    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE OR REPLACE FUNCTION enforce_user_limit()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (SELECT COUNT(*) FROM gameUsers) >= 3000 THEN
+        RAISE EXCEPTION 'User table limit of 3000 rows reached';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER check_user_limit
+BEFORE INSERT ON gameUsers
+FOR EACH ROW EXECUTE FUNCTION enforce_user_limit();

@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
 async function load(){
     const response = await fetch('/api/time');
     const data = await response.json();
-    console.log(data);
     scheduleRefresh(data.fish_interval);
 }
 
@@ -28,7 +27,7 @@ function scheduleRefresh(interval) {
     }
     const delayMs = nextTarget - nyNow;
 
-    console.log("Refresh in " + delayMs + "ms");
+    //console.log("Refresh in " + delayMs + "ms");
     startCountdown(delayMs);
     setTimeout(() => {
         location.reload();

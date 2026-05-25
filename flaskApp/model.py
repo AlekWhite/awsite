@@ -1,7 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 import datetime as dt
 from sqlalchemy import func
+import uuid
 
 db = SQLAlchemy()
 
@@ -192,3 +193,84 @@ class Arduino(db.Model):
             arduino.port = port
         db.session.commit()
         return arduino
+    
+class GameUser(db.Model):
+    __tablename__ = 'gameusers'
+
+    id                      = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name                    = db.Column(db.String(100), nullable=False)
+    known_string            = db.Column(db.String(255), nullable=False)
+    yellows                 = db.Column(db.String(26),  nullable=False, default='0' * 26)
+    fails                   = db.Column(db.String(26),  nullable=False, default='0' * 26)
+    final_score             = db.Column(db.Integer,     nullable=False, default=0)
+    is_leaderboard_eligible = db.Column(db.Boolean,     nullable=False, default=True)
+    guess_date              = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id':                      self.id,
+            'name':                    self.name,
+            'known_string':            self.known_string,
+            'yellows':                 self.yellows,
+            'fails':                   self.fails,
+            'final_score':             self.final_score,
+            'is_leaderboard_eligible': self.is_leaderboard_eligible,
+            'guess_date':              self.guess_date.isoformat(),
+        }
+
+    @classmethod
+    def create(cls, name: str, known_string: str, yellows: str = None,
+               fails: str = None, final_score: int = 0,
+               is_leaderboard_eligible: bool = True)-> 'GameUser':
+        user = cls(
+            name=name,
+            known_string=known_string,
+            yellows=yellows or '0' * 26,
+            fails=fails   or '0' * 26,
+            final_score=final_score,
+            is_leaderboard_eligible=is_leaderboard_eligible,
+        )
+        db.session.add(user)
+        db.session.commit()
+        return user
+
+    @classmethod
+    def get_by_id(cls, user_id: str) -> 'GameUser | None':
+        return cls.query.get(user_id)
+
+    @classmethod
+    def get_all(cls) -> list['GameUser']:
+        return cls.query.order_by(cls.guess_date.desc()).all()
+
+    @classmethod
+    def get_leaderboard(cls, limit: int = 10) -> list['GameUser']:
+        return (cls.query
+                   .filter_by(is_leaderboard_eligible=True)
+                   .filter(cls.final_score < 0) 
+                   .order_by(cls.final_score.asc())
+                   .limit(limit)
+                   .all())
+
+    def update(self, **kwargs) -> 'GameUser':
+        allowed = {'name', 'known_string', 'yellows', 'fails',
+                   'final_score', 'is_leaderboard_eligible', 'guess_date'}
+        for key, value in kwargs.items():
+            if key in allowed:
+                setattr(self, key, value)
+        db.session.commit()
+        return self
+
+    def delete(self) -> None:
+        db.session.delete(self)
+        db.session.commit()
+
+    @classmethod
+    def delete_by_id(cls, user_id: str) -> bool:
+        user = cls.get_by_id(user_id)
+        if user:
+            user.delete()
+            return True
+        return False
+
+    def __repr__(self):
+        return f'<User {self.id} | {self.name} | score={self.final_score}>'

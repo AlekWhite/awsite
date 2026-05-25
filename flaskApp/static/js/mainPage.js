@@ -17,24 +17,25 @@ function hideLoading() {
 async function loadFish() {
     showLoading();
     try {
+
+        const user_res = await fetch("/api/user");
+        if (!user_res.ok){
+            const mk_res = await fetch("/api/make_user");
+            if (!mk_res.ok){ 
+                throw new Error(`HTTP error! Status: ${mk_res.status}`); 
+            } 
+        }
+
         const response = await fetch('/api/fish');
         const data = await response.json();
-        console.log(data);
-        const imageLoadPromises = [];
-
-        const res = await fetch("/current_fish");
-        const html = await res.text();
-
+        
         const fishBox = document.getElementById('fish_box');
-        fishBox.innerHTML = html;
         fishBox.querySelector("#show").addEventListener("click", show_current_fish);
         fishBox.querySelector("#outer").style.backgroundImage = "url('static/css/img/blue_bg.png')";
-        const fish_spot = document.getElementById('current_fish_div');
-        fish_spot.innerHTML = `<form action="/guess_the_fish"><button style="background: transparent; border: none;" type="submit">${html}</button></form>`;
-        fish_spot.querySelector("#helper").innerText = "Click to guess the fish!";
         document.getElementById('fish_name_div').style.display = "none";
         document.getElementById('fish_link_div').style.display = "none";
 
+        const imageLoadPromises = [];
         data.fish.forEach(fish => {
 
             const img = document.createElement('img');
@@ -54,7 +55,6 @@ async function loadFish() {
         });
 
         await Promise.all(imageLoadPromises);
-        //set_main_fish(data.fish[0], document.getElementById(data.fish[0].name + "_fishImg"));
 
     } catch (error) {
         console.error('Error loading fish:', error);
@@ -82,6 +82,7 @@ function set_main_fish(fish, img) {
     if (!rawDate) {
         console.error('Missing fish date');
         return;}
+
     const d = new Date(rawDate);
     const date_text = d.toLocaleDateString('en-US', {
         year: 'numeric',

@@ -17,8 +17,21 @@
                     <h2><b>The fish of the week</b></h2>
                 </button>
             </form>
-         
+
             <div style="display: flex; flex-direction: row;">
+
+                <form action="/leaderboard">
+                    <button class="icoButton" style="border: 3px dashed #8a9696; border-radius: 3px; display: flex; flex-direction: column; align-items: center; margin: 10px;">
+                        <svg width="75px" height="75px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 21H9V12.6C9 12.2686 9.26863 12 9.6 12H14.4C14.7314 12 15 12.2686 15 12.6V21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M20.4 21H15V18.1C15 17.7686 15.2686 17.5 15.6 17.5H20.4C20.7314 17.5 21 17.7686 21 18.1V20.4C21 20.7314 20.7314 21 20.4 21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M9 21V16.1C9 15.7686 8.73137 15.5 8.4 15.5H3.6C3.26863 15.5 3 15.7686 3 16.1V20.4C3 20.7314 3.26863 21 3.6 21H9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M10.8056 5.11325L11.7147 3.1856C11.8314 2.93813 12.1686 2.93813 12.2853 3.1856L13.1944 5.11325L15.2275 5.42427C15.4884 5.46418 15.5923 5.79977 15.4035 5.99229L13.9326 7.4917L14.2797 9.60999C14.3243 9.88202 14.0515 10.0895 13.8181 9.96099L12 8.96031L10.1819 9.96099C9.94851 10.0895 9.67568 9.88202 9.72026 9.60999L10.0674 7.4917L8.59651 5.99229C8.40766 5.79977 8.51163 5.46418 8.77248 5.42427L10.8056 5.11325Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="mainText" style="font-size: 16pt;">Leaderboard</span>
+                    </button>
+                </form>
+
                 <div id="countdown-wrap">
                     <span class="countdown-label">Fish Friday Countdown!</span>
                     <div class="countdown-clock">
@@ -31,25 +44,50 @@
                         <div class="countdown-unit"><span id="cd-secs">--</span><em>sec</em></div>
                     </div>
                 </div>
-
-                <form action="/auth_page">
-                    <button class="icoButton" id="lgButton" type="submit">
-                        <svg width="96px" height="96px" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd" clip-rule="evenodd" d="M5.5054 9.89526C5.55475 9.66558 5.72029 9.47825 5.94216 9.40102C6.16403 9.3238 6.41011 9.36785 6.5914 9.51726L7.9354 10.4173C8.11049 10.5229 8.32272 10.5475 8.51733 10.4848C8.71194 10.4221 8.86989 10.2782 8.9504 10.0903C11.4544 5.05926 17.6994 6.56326 19.4634 11.7773C19.512 11.922 19.512 12.0786 19.4634 12.2233C17.6994 17.4373 11.4544 18.9413 8.9504 13.9103C8.86953 13.7224 8.71124 13.5787 8.51641 13.5164C8.32158 13.4541 8.10931 13.4792 7.9344 13.5853L6.5904 14.4853C6.40884 14.6342 6.16278 14.6777 5.94115 14.6001C5.71952 14.5225 5.55438 14.3349 5.5054 14.1053C5.49312 14.0207 5.50348 13.9345 5.5354 13.8553L6.0994 12.2513C6.1558 12.0894 6.1558 11.9132 6.0994 11.7513L5.5364 10.1513C5.50306 10.0703 5.49235 9.98183 5.5054 9.89526Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M13.8261 13.9699C13.5332 14.2628 13.5332 14.7377 13.8261 15.0306C14.119 15.3235 14.5938 15.3235 14.8867 15.0306L13.8261 13.9699ZM17.0297 12.8876C17.3226 12.5947 17.3226 12.1198 17.0297 11.8269C16.7368 11.534 16.262 11.534 15.9691 11.8269L17.0297 12.8876ZM11.3011 13.6379C11.0082 13.9308 11.0082 14.4057 11.3011 14.6986C11.594 14.9915 12.0688 14.9915 12.3617 14.6986L11.3011 13.6379ZM16.6467 10.4136C16.9396 10.1207 16.9396 9.64581 16.6467 9.35291C16.3538 9.06002 15.879 9.06002 15.5861 9.35291L16.6467 10.4136ZM10.9691 11.1129C10.6762 11.4058 10.6762 11.8807 10.9691 12.1736C11.262 12.4665 11.7368 12.4665 12.0297 12.1736L10.9691 11.1129ZM14.1727 10.0306C14.4656 9.73768 14.4656 9.26281 14.1727 8.96991C13.8798 8.67702 13.405 8.67702 13.1121 8.96991L14.1727 10.0306ZM14.8867 15.0306L17.0297 12.8876L15.9691 11.8269L13.8261 13.9699L14.8867 15.0306ZM12.3617 14.6986L16.6467 10.4136L15.5861 9.35291L11.3011 13.6379L12.3617 14.6986ZM12.0297 12.1736L14.1727 10.0306L13.1121 8.96991L10.9691 11.1129L12.0297 12.1736Z" fill="currentColor"/>
-                        </svg>
-                    </button>
-                </form>
             </div>
         </div>
 
-        <div class="fotwDiv" id="fotw_div">
+        <div class="fotwDiv" id="fotw_div" style="background: rgb(49, 50, 53);">
             <div id="fish_name_div" class="mainDiv" style="width: 500px;">
                 <span id="fotw_title" class="mainText">This week's fish:</span>
                 <span id="fotw_name" class="mainText"></span>
             </div>
-            <div id="current_fish_div">
+
+            <div id="current_fish_div" style="display: flex; flex-direction: row;">
+                <form action="/guess_the_fish">
+                    <button style="background: transparent; border: none; color: #303840;" type="submit">
+                        <div class="small_fish" style="margin: 20px;" id="show">
+                            <div id="outer" class="current_div" style="height: 95%; width: 95%;">
+                                <div class="current_div" style="background: rgb(56, 108, 136); width: 80%; height: 80%;">
+                                    <span class="mainText">Guess the fish!</span>
+                                    <svg width="70%" height="70%" viewBox="0 0 24.00 24.00" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.048"></g><g id="SVGRepo_iconCarrier"><path d="M4 4.00098H20V18.001C20 19.1055 19.1046 20.001 18 20.001H6C4.89543 20.001 4 19.1055 4 18.001V4.00098Z" stroke="#333538" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.656"></path><rect height="0.01" stroke="#333538" stroke-linejoin="round" stroke-width="1.656" width="0.01" x="12" y="16"></rect><path d="M10.5858 7.58572C10.9754 7.1961 11.4858 7.00083 11.9965 6.99994C12.5095 6.99904 13.0228 7.1943 13.4142 7.58572C13.8047 7.97625 14 8.48809 14 8.99994C14 9.51178 13.8047 10.0236 13.4142 10.4141C13.0228 10.8056 12.5095 11.0008 11.9965 10.9999L12 11.9999" stroke="#333538" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.656"></path></g></svg>
+                                    <span id="helper" class="mainText">Click to guess the fish!</span>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                </form>
+
+                <form action="/leaderboard">
+                    <button style="background: transparent; border: none; color: #303840;" type="submit">
+                        <div class="small_fish" style="margin: 20px;" id="show_lb">
+                            <div id="outer_lb" class="current_div" style="height: 95%; width: 95%;">
+                                <div class="current_div" style="background: rgb(56, 108, 136); width: 80%; height: 80%;">
+                                    <span class="mainText">Leaderboard</span>
+                                    <svg width="70%" height="70%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M15 21H9V12.6C9 12.2686 9.26863 12 9.6 12H14.4C14.7314 12 15 12.2686 15 12.6V21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M20.4 21H15V18.1C15 17.7686 15.2686 17.5 15.6 17.5H20.4C20.7314 17.5 21 17.7686 21 18.1V20.4C21 20.7314 20.7314 21 20.4 21Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M9 21V16.1C9 15.7686 8.73137 15.5 8.4 15.5H3.6C3.26863 15.5 3 15.7686 3 16.1V20.4C3 20.7314 3.26863 21 3.6 21H9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M10.8056 5.11325L11.7147 3.1856C11.8314 2.93813 12.1686 2.93813 12.2853 3.1856L13.1944 5.11325L15.2275 5.42427C15.4884 5.46418 15.5923 5.79977 15.4035 5.99229L13.9326 7.4917L14.2797 9.60999C14.3243 9.88202 14.0515 10.0895 13.8181 9.96099L12 8.96031L10.1819 9.96099C9.94851 10.0895 9.67568 9.88202 9.72026 9.60999L10.0674 7.4917L8.59651 5.99229C8.40766 5.79977 8.51163 5.46418 8.77248 5.42427L10.8056 5.11325Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <span id="helper_lb" class="mainText">Click to view leaderboard</span>
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                </form>
             </div>
+
             <div id="fish_link_div" class="mainDiv" style="width: 500px;">
                 <span class="mainText">Wiki Link:</span>
                 <a style="margin-top: 10px; color: #394047;" id="fotw_link" href="" target="_blank" rel="noopener noreferrer"></a>
@@ -60,9 +98,23 @@
             <div class="mainDiv" style="width: 500px;">
                 <span class="mainText">Previous Winners:</span>
             </div>
+
             <div id="fish_box" class="fish_box">
+                <div class="small_fish" id="show">
+                    <div id="outer" class="current_div" style="height: 95%; width: 95%;">
+                        <div class="current_div" style="background: rgb(56, 108, 136); width: 80%; height: 80%;">
+                            <span class="mainText">The fish of the week!</span>
+                            <svg width="70%" height="70%" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M5.5054 9.89526C5.55475 9.66558 5.72029 9.47825 5.94216 9.40102C6.16403 9.3238 6.41011 9.36785 6.5914 9.51726L7.9354 10.4173C8.11049 10.5229 8.32272 10.5475 8.51733 10.4848C8.71194 10.4221 8.86989 10.2782 8.9504 10.0903C11.4544 5.05926 17.6994 6.56326 19.4634 11.7773C19.512 11.922 19.512 12.0786 19.4634 12.2233C17.6994 17.4373 11.4544 18.9413 8.9504 13.9103C8.86953 13.7224 8.71124 13.5787 8.51641 13.5164C8.32158 13.4541 8.10931 13.4792 7.9344 13.5853L6.5904 14.4853C6.40884 14.6342 6.16278 14.6777 5.94115 14.6001C5.71952 14.5225 5.55438 14.3349 5.5054 14.1053C5.49312 14.0207 5.50348 13.9345 5.5354 13.8553L6.0994 12.2513C6.1558 12.0894 6.1558 11.9132 6.0994 11.7513L5.5364 10.1513C5.50306 10.0703 5.49235 9.98183 5.5054 9.89526Z"
+                                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M13.8261 13.9699C13.5332 14.2628 13.5332 14.7377 13.8261 15.0306C14.119 15.3235 14.5938 15.3235 14.8867 15.0306L13.8261 13.9699ZM17.0297 12.8876C17.3226 12.5947 17.3226 12.1198 17.0297 11.8269C16.7368 11.534 16.262 11.534 15.9691 11.8269L17.0297 12.8876ZM11.3011 13.6379C11.0082 13.9308 11.0082 14.4057 11.3011 14.6986C11.594 14.9915 12.0688 14.9915 12.3617 14.6986L11.3011 13.6379ZM16.6467 10.4136C16.9396 10.1207 16.9396 9.64581 16.6467 9.35291C16.3538 9.06002 15.879 9.06002 15.5861 9.35291L16.6467 10.4136ZM10.9691 11.1129C10.6762 11.4058 10.6762 11.8807 10.9691 12.1736C11.262 12.4665 11.7368 12.4665 12.0297 12.1736L10.9691 11.1129ZM14.1727 10.0306C14.4656 9.73768 14.4656 9.26281 14.1727 8.96991C13.8798 8.67702 13.405 8.67702 13.1121 8.96991L14.1727 10.0306ZM14.8867 15.0306L17.0297 12.8876L15.9691 11.8269L13.8261 13.9699L14.8867 15.0306ZM12.3617 14.6986L16.6467 10.4136L15.5861 9.35291L11.3011 13.6379L12.3617 14.6986ZM12.0297 12.1736L14.1727 10.0306L13.1121 8.96991L10.9691 11.1129L12.0297 12.1736Z"
+                                        fill="currentColor"/>
+                            </svg>
+                            <span id="helper" class="mainText">Click to reveal!</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
     </div>
 </body>
